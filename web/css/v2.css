@@ -1,0 +1,253 @@
+/* =========================================================
+   v2 补充样式
+   UI 主样式在 base.css / ui.css / hud.css 里；这里只放三件事：
+   1) 由 JS 兜底生成的新元素（页面没有时也能显示）
+   2) 12 张炮塔卡片的双行布局
+   3) Boss 血量数字、二阶段、裁剪等战斗内微调
+   ========================================================= */
+
+/* ---------- 1. JS 兜底生成的元素 ---------- */
+.shop-tabs {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 4px 0 2px;
+  flex: 0 0 auto;
+}
+
+.shop-tabs button {
+  padding: 5px 18px;
+  border: 2px solid rgba(0, 0, 0, .16);
+  border-radius: 999px;
+  background: #fffdf7;
+  color: #6b5a49;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, .12);
+  transition: transform .1s ease;
+}
+
+.shop-tabs button:hover { transform: translateY(-1px); }
+
+.shop-tabs button.active {
+  background: linear-gradient(180deg, #7ed957, #4fae42);
+  border-color: #3d8b2f;
+  color: #fff;
+  box-shadow: 0 3px 0 #3d8b2f;
+}
+
+.boss-warning {
+  position: absolute;
+  left: 50%;
+  top: 24%;
+  transform: translateX(-50%);
+  padding: 12px 32px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ff5c5c, #a31818);
+  border: 4px solid #fff0f0;
+  color: #fff;
+  font-family: inherit;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, .35);
+  box-shadow: 0 12px 30px rgba(120, 0, 0, .45);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.boss-warning.pop { animation: boss-shake .5s ease-out 2; }
+
+@keyframes boss-shake {
+  0%   { transform: translateX(-50%) scale(.72); opacity: 0; }
+  40%  { transform: translateX(calc(-50% + 6px)) scale(1.06); opacity: 1; }
+  70%  { transform: translateX(calc(-50% - 4px)) scale(1); }
+  100% { transform: translateX(-50%) scale(1); }
+}
+
+.next-wave-preview {
+  flex: 0 1 auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b5a49;
+  opacity: .85;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- 2. 商店：12 张卡双行 ---------- */
+.tower-shop {
+  height: var(--shop-h) !important;
+  max-height: var(--shop-h) !important;
+  min-height: var(--shop-h) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.tower-shop::-webkit-scrollbar { width: 6px; height: 6px; }
+.tower-shop::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, .22); border-radius: 3px; }
+
+/* 策略小标签放在卡片第二行，不压住塔名 */
+.shop-card .sc-tag {
+  position: static !important;
+  transform: none !important;
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+  justify-self: start !important;
+  margin: 0 !important;
+  padding: 0 4px !important;
+  font-size: 9px !important;
+  line-height: 1.35 !important;
+  border-radius: 5px !important;
+  background: rgba(59, 47, 42, .16) !important;
+  color: #6b5230 !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+}
+
+/* 道具卡片图标 */
+.shop-card.tab-item .sc-icon,
+.shop-card .item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 900;
+  font-size: 16px;
+}
+
+/* ---------- 3. 战斗内微调 ---------- */
+#game-stage {
+  overflow: hidden;
+  border-radius: 18px;
+  flex: 0 0 auto;
+}
+
+#game-canvas { overflow: hidden; }
+
+.hud-wave.final-wave {
+  color: #d63b3b;
+  animation: low-pulse .8s ease-in-out infinite;
+}
+
+@keyframes low-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .58; }
+}
+
+/* 贴塔浮层：位置由 JS 计算，这里只保证层级与不裁切 */
+.tower-inspect {
+  position: absolute;
+  z-index: 30;
+  width: 208px;
+  pointer-events: auto;
+}
+
+.tower-inspect .inspect-stats {
+  margin: 6px 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.tower-inspect .inspect-stats li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tower-inspect .inspect-stats b { font-weight: 900; }
+
+.tower-inspect .inspect-actions .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.tower-inspect .inspect-hint {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.35;
+  opacity: .62;
+  text-align: center;
+}
+
+.inspect-strategy {
+  margin: 2px 0 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  color: #c9832a;
+}
+
+/* Boss 血量数字：贴血条右上方 */
+#boss-bar { overflow: visible !important; }
+
+#boss-bar .boss-hp {
+  position: absolute !important;
+  right: 16px !important;
+  top: -24px !important;
+  bottom: auto !important;
+  margin: 0 !important;
+  padding: 1px 9px !important;
+  border-radius: 8px !important;
+  background: rgba(18, 10, 8, .85) !important;
+  color: #ffe6a8 !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  line-height: 1.65 !important;
+  letter-spacing: .04em !important;
+  font-variant-numeric: tabular-nums !important;
+  white-space: nowrap !important;
+  z-index: 6 !important;
+  pointer-events: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .4) !important;
+}
+
+.boss-bar.phase2 { animation: boss-rage .9s ease-in-out infinite; }
+
+@keyframes boss-rage {
+  0%, 100% { box-shadow: 0 0 0 rgba(255, 60, 60, 0); }
+  50%      { box-shadow: 0 0 18px rgba(255, 60, 60, .75); }
+}
+
+.boss-bar.phase2 .boss-fill {
+  background: linear-gradient(90deg, #ff3b6b, #ff9f43);
+}
+
+/* 道具价格 */
+.item-price {
+  font-size: 11px;
+  font-weight: 900;
+  color: #b5722a;
+  margin-left: 2px;
+}
+
+/* 图鉴标签 */
+.cc-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(59, 47, 42, .12);
+  font-size: 10px;
+  font-weight: 800;
+  vertical-align: middle;
+}
+
+.cc-tag.boss { background: #ff5c8a; color: #fff; }
+
+/* 矮屏压缩 */
+@media (max-height: 760px) {
+  .shop-tabs button { padding: 3px 14px; font-size: 12px; }
+  .item-btn { padding: 4px 10px; font-size: 12px; }
+  .boss-warning { font-size: 20px; padding: 9px 24px; }
+}
