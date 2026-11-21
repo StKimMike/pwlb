@@ -1,0 +1,31 @@
+# Python 运行时缓存
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 自动下载的便携版 Python（21MB，启动器会在目标机器自动补齐）
+runtime/
+
+# 玩家存档与成绩（运行时生成）
+saves/
+
+# 测试/截图临时产物
+.out/
+_screen.png
+scripts/_*.ps1
+.DS_Store
+Thumbs.db
+*.log
+
+# 编译中间产物（保留 pwlb-launcher.exe 供直接下载运行）
+*.o
+*.obj
+*.exp
+*.lib
+*.pdb
+
+# 编辑器配置
+.vscode/
+.idea/
