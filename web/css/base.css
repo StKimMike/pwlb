@@ -1,0 +1,530 @@
+/* =========================================================
+   保卫萝卜 · 复刻版 —— 基础样式（base.css）
+   画风：鲜艳圆润卡通（保卫萝卜3 观感）
+   包含：设计变量、重置、布局骨架、按钮、选项卡、弹窗、动画
+   ========================================================= */
+
+:root {
+  /* ---- 契约色板 ---- */
+  --c-green: #7ec850;
+  --c-green-deep: #4a8a32;
+  --c-green-light: #a8e06a;
+  --c-road: #e8c88a;
+  --c-orange: #ff9f43;
+  --c-orange-deep: #e07a1f;
+  --c-blue: #4aa3ff;
+  --c-blue-deep: #2f7bc8;
+  --c-pink: #ff7aa8;
+  --c-pink-deep: #e0548a;
+  --c-cream: #fff6e5;
+  --c-cream-deep: #ffe7bd;
+  --c-ink: #3b2f2a;
+
+  /* ---- 派生色 ---- */
+  --c-ink-soft: #7a5f4c;
+  --c-wood: #d79a5b;
+  --c-wood-deep: #a2662f;
+  --c-wood-dark: #6f421d;
+  --c-sun: #ffd93d;
+  --c-red: #ff5f5f;
+  --c-red-deep: #d63b3b;
+  --c-sky-top: #7fd4ff;
+  --c-sky-bottom: #d9f3ff;
+  --c-paper: #fffdf6;
+
+  /* ---- 圆角 ---- */
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 28px;
+  --radius-xl: 34px;
+  --radius-pill: 999px;
+
+  /* ---- 立体阴影：下沿实心投影 + 柔和外阴影 ---- */
+  --shadow-btn: 0 6px 0 var(--c-wood-deep), 0 12px 18px rgba(59, 47, 42, .26);
+  --shadow-btn-sm: 0 4px 0 var(--c-wood-deep), 0 8px 12px rgba(59, 47, 42, .22);
+  --shadow-card: 0 7px 0 var(--c-wood-dark), 0 16px 26px rgba(59, 47, 42, .26);
+  --highlight-top: inset 0 5px 0 rgba(255, 255, 255, .78);
+  --shade-bottom: inset 0 -6px 0 rgba(110, 70, 25, .18);
+
+  /* ---- 木纹贴图（纯 CSS，可复用） ---- */
+  --tex-wood: repeating-linear-gradient(90deg, rgba(120, 74, 30, .10) 0 2px, rgba(255, 255, 255, 0) 2px 13px),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, .10) 0 1px, rgba(120, 74, 30, .05) 1px 26px);
+
+  /* ---- 字体：全部使用系统字体栈，不引入外部字体 ---- */
+  --font-ui: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei",
+    "Source Han Sans SC", "Noto Sans CJK SC", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-title: "Yuanti SC", "YouYuan", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI",
+    "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+}
+
+/* ---------- 重置 ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--c-ink);
+  background: #8fd0ff;
+  /* 页面本身永不出现滚动条，所有滚动都发生在界面内部的容器里 */
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1, h2, h3, h4, p, ul, ol, dl, dd, dt, figure {
+  margin: 0;
+}
+
+ul, ol {
+  padding: 0;
+  list-style: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  border: 0;
+  background: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+canvas {
+  display: block;
+}
+
+/* ---------- 布局骨架 ---------- */
+.app {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--c-sky-top), var(--c-sky-bottom));
+}
+
+/* 屏幕容器：未激活 display:none，激活后 display:flex */
+.screen {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.screen.active {
+  display: flex;
+}
+
+/* ---------- 工具类 ---------- */
+.hidden {
+  display: none !important;
+}
+
+/* =========================================================
+   按钮：粗描边 + 顶部高光 + 底部实心投影
+   ========================================================= */
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 50px;
+  padding: 11px 28px;
+  font-family: var(--font-ui);
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: .03em;
+  line-height: 1.2;
+  color: var(--c-ink);
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  background: linear-gradient(180deg, #fffdf3 0%, #ffedc9 56%, #ffd79a 100%);
+  border: 3px solid var(--c-ink);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-btn), var(--highlight-top), var(--shade-bottom);
+  transition: transform .1s ease, box-shadow .1s ease, filter .12s ease;
+}
+
+/* 顶部一道更亮的玻璃高光 */
+.btn::before {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 5px;
+  height: 34%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .92), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+
+.btn:hover {
+  filter: brightness(1.05) saturate(1.06);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 0 var(--c-wood-deep), 0 16px 22px rgba(59, 47, 42, .28), var(--highlight-top), var(--shade-bottom);
+}
+
+.btn:active {
+  transform: translateY(5px);
+  box-shadow: 0 1px 0 var(--c-wood-dark), 0 3px 8px rgba(59, 47, 42, .24), var(--highlight-top), var(--shade-bottom);
+}
+
+.btn:disabled,
+.btn[disabled],
+.btn.disabled {
+  cursor: not-allowed;
+  filter: grayscale(.5) brightness(.98);
+  opacity: .68;
+  transform: none;
+  box-shadow: 0 4px 0 var(--c-wood-deep);
+}
+
+.btn:disabled::before,
+.btn[disabled]::before {
+  opacity: .3;
+}
+
+/* 主按钮：草绿，用于「开始游戏 / 继续 / 下一关」等主操作 */
+.btn.primary {
+  color: #fff;
+  background: linear-gradient(180deg, #b9f07a 0%, var(--c-green) 52%, #57a836 100%);
+  border-color: var(--c-ink);
+  text-shadow: 0 2px 0 rgba(46, 96, 26, .55);
+  box-shadow: 0 6px 0 var(--c-green-deep), 0 12px 18px rgba(45, 100, 30, .34),
+    inset 0 5px 0 rgba(255, 255, 255, .55), var(--shade-bottom);
+}
+
+.btn.primary::before {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .72), rgba(255, 255, 255, 0));
+}
+
+.btn.primary:hover {
+  box-shadow: 0 8px 0 var(--c-green-deep), 0 16px 22px rgba(45, 100, 30, .36),
+    inset 0 5px 0 rgba(255, 255, 255, .55), var(--shade-bottom);
+}
+
+.btn.primary:active {
+  box-shadow: 0 1px 0 #356a1e, inset 0 5px 0 rgba(255, 255, 255, .4);
+}
+
+/* 危险按钮：粉红，用于拆塔 / 卖出 */
+.btn.danger {
+  color: #fff;
+  background: linear-gradient(180deg, #ffa5b8 0%, #ff6f8f 52%, #e04e6f 100%);
+  text-shadow: 0 2px 0 rgba(150, 30, 55, .45);
+  box-shadow: 0 6px 0 #a83a52, 0 12px 18px rgba(150, 40, 60, .3),
+    inset 0 5px 0 rgba(255, 255, 255, .5), var(--shade-bottom);
+}
+
+.btn.danger:hover {
+  box-shadow: 0 8px 0 #a83a52, 0 16px 22px rgba(150, 40, 60, .32),
+    inset 0 5px 0 rgba(255, 255, 255, .5), var(--shade-bottom);
+}
+
+.btn.danger:active {
+  box-shadow: 0 1px 0 #8d2f44, inset 0 5px 0 rgba(255, 255, 255, .36);
+}
+
+/* 图标按钮：圆形，用于返回、暂停、加速 */
+.btn.icon {
+  width: 50px;
+  height: 50px;
+  min-width: 50px;
+  min-height: 50px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.btn.icon::before {
+  left: 8px;
+  right: 8px;
+  top: 4px;
+}
+
+.btn.icon.btn {
+  flex: 0 0 auto;
+}
+
+/* 键盘可达性 */
+:focus-visible {
+  outline: 4px solid #ffcf3d;
+  outline-offset: 3px;
+}
+
+/* =========================================================
+   页头（选关 / 图鉴）
+   ========================================================= */
+.screen-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 0 0 auto;
+  padding: 14px 20px 8px;
+}
+
+.screen-title {
+  font-family: var(--font-title);
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: .1em;
+  color: #fff;
+  text-shadow:
+    3px 0 0 var(--c-ink), -3px 0 0 var(--c-ink), 0 3px 0 var(--c-ink), 0 -3px 0 var(--c-ink),
+    2px 2px 0 var(--c-ink), -2px 2px 0 var(--c-ink), 2px -2px 0 var(--c-ink), -2px -2px 0 var(--c-ink),
+    0 8px 0 var(--c-green-deep), 0 14px 20px rgba(30, 70, 25, .4);
+}
+
+.head-tail {
+  flex: 0 0 50px;
+  width: 50px;
+}
+
+.back-btn {
+  font-family: var(--font-ui);
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--c-wood-dark);
+  background: linear-gradient(180deg, #fff8e6, #ffdca8 60%, #f4ba74);
+}
+
+/* =========================================================
+   分段选项卡
+   ========================================================= */
+.tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 5px;
+  background: linear-gradient(180deg, #fff5dd, #f2c389);
+  border: 3px solid var(--c-ink);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 5px 0 var(--c-wood-deep), inset 0 3px 0 rgba(255, 255, 255, .7);
+}
+
+.tab {
+  padding: 8px 22px;
+  font-size: 15px;
+  font-weight: 900;
+  color: #8a6a4a;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: color .14s ease, background .14s ease, transform .12s ease;
+}
+
+.tab:hover {
+  color: var(--c-ink);
+}
+
+.tab.active {
+  color: #fff;
+  background: linear-gradient(180deg, #b9f07a, var(--c-green) 55%, #55a634);
+  border: 2px solid var(--c-ink);
+  padding: 6px 20px;
+  text-shadow: 0 2px 0 rgba(40, 88, 22, .5);
+  box-shadow: 0 3px 0 var(--c-green-deep), inset 0 3px 0 rgba(255, 255, 255, .55);
+}
+
+/* =========================================================
+   弹窗外壳：木牌外框 + 奶白内芯
+   ========================================================= */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(38, 26, 16, .55);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  animation: fade-in .16s ease-out;
+}
+
+.modal-card {
+  position: relative;
+  width: min(430px, 92vw);
+  max-height: 92vh;
+  overflow-y: auto;
+  padding: 28px 24px 24px;
+  text-align: center;
+  background:
+    repeating-linear-gradient(90deg, rgba(120, 74, 30, .05) 0 3px, rgba(255, 255, 255, 0) 3px 20px),
+    linear-gradient(180deg, #fffaf0 0%, #fff2d8 62%, #ffe4b6 100%);
+  border: 4px solid var(--c-ink);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 0 var(--c-wood-dark), 0 26px 46px rgba(20, 12, 6, .5),
+    inset 0 5px 0 #fff, inset 0 -7px 0 rgba(150, 100, 40, .16);
+  animation: pop-in .24s cubic-bezier(.34, 1.56, .64, 1);
+}
+
+/* 木牌顶部的挂钉装饰 */
+.modal-card::before,
+.modal-card::after {
+  content: "";
+  position: absolute;
+  top: 9px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #fff3c4, #ffc94a 50%, #c98a12);
+  border: 2px solid var(--c-ink);
+  box-shadow: inset 0 -2px 0 rgba(140, 80, 10, .35);
+}
+
+.modal-card::before {
+  left: 12px;
+}
+
+.modal-card::after {
+  right: 12px;
+}
+
+.modal-title {
+  font-family: var(--font-title);
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  color: var(--c-ink);
+  text-shadow: 0 3px 0 rgba(255, 255, 255, .9), 0 5px 0 rgba(214, 170, 110, .5);
+}
+
+.modal-sub {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--c-ink-soft);
+}
+
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.modal-actions .btn {
+  width: 100%;
+}
+
+/* ---------- 动画 ---------- */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(.9) translateY(12px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-9px); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-1.6deg); }
+  50% { transform: rotate(1.6deg); }
+}
+
+@keyframes shake-x {
+  0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+  25% { transform: translate(calc(-50% - 6px), -50%) rotate(-1.4deg); }
+  75% { transform: translate(calc(-50% + 6px), -50%) rotate(1.4deg); }
+}
+
+@keyframes shine-sweep {
+  0% { background-position: -180% 0; }
+  100% { background-position: 180% 0; }
+}
+
+/* ---------- 小窗口适配 ---------- */
+@media (max-height: 680px) {
+  .btn {
+    min-height: 44px;
+    font-size: 16px;
+    padding: 9px 24px;
+  }
+
+  .screen-title {
+    font-size: 25px;
+  }
+
+  .screen-head {
+    padding: 10px 16px 6px;
+  }
+
+  .modal-card {
+    padding: 20px 18px 18px;
+  }
+
+  .modal-title {
+    font-size: 23px;
+  }
+
+  .btn.icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .head-tail {
+    flex-basis: 44px;
+    width: 44px;
+  }
+}
+
+@media (max-width: 720px) {
+  .screen-head {
+    gap: 10px;
+    padding: 12px 12px 6px;
+  }
+
+  .tab {
+    padding: 7px 14px;
+    font-size: 14px;
+  }
+
+  .tab.active {
+    padding: 5px 12px;
+  }
+}
+
+/* 尊重系统的「减少动态效果」设置 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
