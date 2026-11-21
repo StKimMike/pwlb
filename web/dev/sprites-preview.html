@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprites 自测页 · 保卫萝卜复刻 v2 画风</title>
+<style>
+  :root{
+    --green:#7ec850; --green-deep:#4a8a32; --road:#e8c88a;
+    --orange:#ff9f43; --pink:#ff7aa8; --blue:#4aa3ff;
+    --cream:#fff6e5; --ink:#3b2f2a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:#f4efe6; color:var(--ink);
+    font:14px/1.6 "Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    padding:16px 16px 60px;
+  }
+  h1{font-size:20px;margin:0 0 4px}
+  .hint{color:#7a6b60;font-size:13px;margin:0 0 12px}
+  .panel{
+    background:#fff;border:2px solid #e7ddcf;border-radius:14px;
+    padding:12px 14px;margin-bottom:14px;
+  }
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  canvas#board{
+    display:block;background:#fbf6ec;border:2px solid #e7ddcf;border-radius:14px;
+    max-width:100%;height:auto;
+  }
+  label.chk{display:inline-flex;gap:6px;align-items:center;cursor:pointer;user-select:none}
+  .tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;
+       background:#eef7ee;border:1px solid #cfe6cf}
+  .tag.bad{background:#fdeaea;border-color:#f0c0c0;color:#a33}
+  code{background:#f4efe6;padding:1px 5px;border-radius:4px;font-size:12px}
+  #err{color:#a33;font-size:12px;white-space:pre-wrap}
+</style>
+</head>
+<body>
+
+<h1>Sprites 自测页 · 契约 6.1 全量绘制</h1>
+<p class="hint">
+  一张网格覆盖 <code>window.Sprites</code> 的全部 12 个方法：炮塔 12 种 × 3 级、怪物 15 格（12 种 + 3 Boss）、
+  障碍 8 种（含 2×2 / 3×2 多格尺寸）、3 种道具、12 种弹丸、6 种主题地砖、萝卜 / 传送门 / 塔位 / 装饰。
+  炮塔会跟随鼠标转向（演示 <code>opts.angle</code>），并周期性开火演示后坐 + 炮口火光。
+</p>
+
+<div class="panel" id="status-panel">
+  <strong>模块：</strong>
+  <span id="st-sprites" class="tag">检查中…</span>
+  <span id="st-methods" class="tag">检查中…</span>
+  <span class="row" style="margin-left:14px">
+    <label class="chk"><input type="checkbox" id="chk-fire" checked> 演示开火</label>
+    <label class="chk"><input type="checkbox" id="chk-aim" checked> 跟随鼠标转向</label>
+    <label class="chk"><input type="checkbox" id="chk-hp" checked> 显示血条</label>
+  </span>
+  <div id="err"></div>
+</div>
+
+<canvas id="board" width="1280" height="2100"></canvas>
+
+<script src="../js/sprites.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var S = window.Sprites;
+  var cv = document.getElementById('board');
+  var ctx = cv.getContext('2d');
+  var errBox = document.getElementById('err');
+
+  var TOWERS = ['bottle','arrow','fan','ice','cannon','magic','tesla','sun','poison','sniper','missile','drum'];
+  var TOWER_NAMES = {bottle:'瓶子',arrow:'弓箭',fan:'风扇',ice:'冰冻',cannon:'火炮',magic:'魔法',
+    tesla:'闪电',sun:'太阳花',poison:'毒菇',sniper:'狙击',missile:'导弹',drum:'战鼓'};
+  var ENEMIES = ['rabbit','rabbitFast','rabbitTank','rabbitJump','rabbitHeal','rabbitShield',
+    'rabbitFly','rabbitSplit','rabbitGhost','rabbitBerserk','rabbitArmored'];
+  var BOSSES = ['rabbitBoss','rabbitKing','finalBoss'];
+  var ENEMY_NAMES = {rabbit:'呆萌兔',rabbitFast:'疾风兔',rabbitTank:'铁甲兔',rabbitJump:'蹦蹦兔',
+    rabbitHeal:'药师兔',rabbitShield:'盾甲兔',rabbitFly:'飞行兔',rabbitSplit:'分裂兔',
+    rabbitGhost:'幽灵兔',rabbitBerserk:'狂暴兔',rabbitArmored:'重装兔',
+    rabbitBoss:'萝卜王',rabbitKing:'兔王',finalBoss:'暗影龙王'};
+  var OBSTACLES = ['rock','mushroom','crate','crystal','tree','house','fence','tower_rubble'];
+  var OBSTACLE_NAMES = {rock:'石头',mushroom:'蘑菇',crate:'木箱',crystal:'水晶',
+    tree:'大树',house:'小屋',fence:'栅栏',tower_rubble:'塔墟'};
+  var PICKUPS = ['bomb','freeze','lightning'];
+  var PICKUP_NAMES = {bomb:'炸弹',freeze:'冰冻',lightning:'闪电'};
+  var THEMES = ['forest','desert','snow','candy','volcano','sky'];
+  var THEME_NAMES = {forest:'森林',desert:'沙漠',snow:'雪原',candy:'糖果',volcano:'熔岩',sky:'天空'};
+  var PROJ = TOWERS;
+
+  /* ---- 状态 ---- */
+  var hasSprites = !!(S && S.drawTower && S.drawTile);
+  var need = ['init','drawTower','drawEnemy','drawCarrot','drawPortal','drawObstacle',
+              'drawObstacleHp','drawProjectile','drawSlot','drawTile','drawDecor','drawPickup'];
+  var missing = hasSprites ? need.filter(function (k) { return typeof S[k] !== 'function'; }) : need;
+
+  var stS = document.getElementById('st-sprites');
+  var stM = document.getElementById('st-methods');
+  stS.textContent = hasSprites ? 'window.Sprites ✓' : 'window.Sprites ✗';
+  stS.className = 'tag' + (hasSprites ? '' : ' bad');
+  stM.textContent = missing.length ? ('缺方法：' + missing.join(', ')) : ('契约 6.1 全部 ' + need.length + ' 个方法 ✓');
+  stM.className = 'tag' + (missing.length ? ' bad' : '');
+
+  if (hasSprites && S.init) S.init();
+
+  var chkFire = document.getElementById('chk-fire');
+  var chkAim = document.getElementById('chk-aim');
+  var chkHp = document.getElementById('chk-hp');
+
+  var pointer = { x: -9999, y: -9999, on: false };
+  cv.addEventListener('mousemove', function (ev) {
+    var r = cv.getBoundingClientRect();
+    pointer.x = (ev.clientX - r.left) * (cv.width / r.width);
+    pointer.y = (ev.clientY - r.top) * (cv.height / r.height);
+    pointer.on = true;
+  });
+  cv.addEventListener('mouseleave', function () { pointer.on = false; });
+
+  /* ---- 排版工具 ---- */
+  var PAD = 40, W = 1280;
+  var y = 26;
+  var LAYOUT = {};
+
+  function label(text, x, yy, size, color, align) {
+    ctx.save();
+    ctx.font = '600 ' + (size || 11) + 'px "Segoe UI","Microsoft YaHei",sans-serif';
+    ctx.textAlign = align || 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = color || '#7a6b60';
+    ctx.fillText(text, x, yy);
+    ctx.restore();
+  }
+  function section(title, sub) {
+    ctx.save();
+    ctx.fillStyle = '#3b2f2a';
+    ctx.font = '700 18px "Segoe UI","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(title, PAD, y);
+    var w = ctx.measureText(title).width;
+    ctx.fillStyle = '#8a7a6c';
+    ctx.font = '400 13px "Segoe UI","Microsoft YaHei",sans-serif';
+    ctx.fillText(sub, PAD + w + 12, y);
+    ctx.fillStyle = '#e7ddcf';
+    ctx.fillRect(PAD, y + 9, W - PAD * 2, 2);
+    ctx.restore();
+    y += 26;
+  }
+  function card(x, yy, w, h, tint) {
+    ctx.save();
+    ctx.fillStyle = tint || 'rgba(255,255,255,0.85)';
+    ctx.strokeStyle = '#e7ddcf';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, yy, w, h, 12); else ctx.rect(x, yy, w, h);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /* ---- 布局计算 ---- */
+  var TOWER_CW = 100, TOWER_CH = 112;
+  var ENEMY_CW = 104, ENEMY_CH = 128;
+  var BOSS_CW = 232, BOSS_CH = 236;
+  var OBS_CW = 150, OBS_CH = 152;
+  var BIG_CW = 250, BIG_CH = 260;
+  var PICK_CW = 140, PICK_CH = 150;
+  var PROJ_CW = 100, PROJ_CH = 74;
+  var TILE_BW = 256, TILE_BH = 128;
+  var MISC_CW = 148, MISC_CH = 156;
+
+  if (hasSprites) {
+    LAYOUT.tower = y;           y += 26 + TOWER_CH * 3 + 26;
+    LAYOUT.enemy = y;           y += 26 + ENEMY_CH + 14 + BOSS_CH + 26;
+    LAYOUT.obs = y;             y += 26 + OBS_CH + 14 + BIG_CH + 26;
+    LAYOUT.pick = y;            y += 26 + Math.max(PICK_CH, PROJ_CH * 3 + 52) + 20;
+    LAYOUT.tile = y;            y += 26 + (TILE_BH + 40) * 2 + 12;
+    LAYOUT.misc = y;            y += 26 + MISC_CH + 14;
+    y += 22;
+    cv.height = Math.max(2380, y);
+  }
+
+  /* ---- 地砖烘焙：drawTile 用绝对坐标（col*64），整块画到离屏画布再贴 ---- */
+  var tileCache = {};
+  function bakeTheme(theme) {
+    if (tileCache[theme] !== undefined) return tileCache[theme];
+    var cv2 = document.createElement('canvas');
+    cv2.width = TILE_BW;
+    cv2.height = TILE_BH;
+    var g = cv2.getContext('2d');
+    try {
+      // drawTile 自己按 (col*64, row*64) 落位，离屏画布原点即世界原点
+      for (var c2 = 0; c2 < TILE_BW / 64; c2++) {
+        for (var r2 = 0; r2 < TILE_BH / 64; r2++) {
+          S.drawTile(g, theme, c2, r2, 1.4);
+        }
+      }
+    } catch (e) { report('drawTile ' + theme, e); return null; }
+    tileCache[theme] = cv2;
+    return cv2;
+  }
+
+  /* ---- 小工具：带异常隔离 ---- */
+  var reported = {};
+  function report(what, e) {
+    if (reported[what]) return;
+    reported[what] = 1;
+    errBox.textContent += '[' + what + '] ' + (e && e.message ? e.message : e) + '\n';
+  }
+  function guard(what, fn) {
+    try { fn(); } catch (e) { report(what, e); }
+  }
+
+  /* ---- 帧 ---- */
+  function frame() {
+    var t = performance.now() / 1000;
+    ctx.fillStyle = '#fbf6ec';
+    ctx.fillRect(0, 0, cv.width, cv.height);
+
+    if (!hasSprites) { requestAnimationFrame(frame); return; }
+
+    /* A. 炮塔 12 × 3 */
+    y = LAYOUT.tower;
+    section('A · 炮塔 12 种 × 3 级', '每一级更高 / 更大 / 更亮，装饰递增；炮口跟随鼠标，周期性开火（后坐 + 火光）');
+    var towerTop = y;
+    for (var r = 0; r < 3; r++) {
+      for (var c = 0; c < 12; c++) {
+        var id = TOWERS[c], lv = r + 1;
+        var cx = PAD + TOWER_CW * c + TOWER_CW / 2;
+        var cy = towerTop + TOWER_CH * r + 62;
+        card(PAD + TOWER_CW * c + 2, towerTop + TOWER_CH * r + 2, TOWER_CW - 4, TOWER_CH - 4,
+          r === 0 ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.88)');
+        var ang = chkAim.checked && pointer.on
+          ? Math.atan2(pointer.y - cy, pointer.x - cx)
+          : -Math.PI / 2 + Math.sin(t * 0.8 + c * 0.6) * 1.3;
+        var firing = chkFire.checked && ((t * 1.1 + c * 0.29 + r * 0.7) % 2.4) < 0.32;
+        guard('drawTower ' + id, function (id2, lv2, x2, y2, a2, f2) {
+          return function () { S.drawTower(ctx, id2, lv2, x2, y2, t, { angle: a2, firing: f2 }); };
+        }(id, lv, cx, cy, ang, firing));
+        label(TOWER_NAMES[id] + ' L' + lv, cx, towerTop + TOWER_CH * r + TOWER_CH - 12, 11, '#7a6b60');
+      }
+    }
+
+    /* B. 怪物 11 + Boss 3 */
+    y = LAYOUT.enemy;
+    section('B · 怪物 15 格', '12 种 + 3 Boss：大眼圆润有表情；Boss 巨大，带皇冠 / 权杖 / 龙角龙翼');
+    var eTop = y;
+    for (var e = 0; e < ENEMIES.length; e++) {
+      var ex = PAD + ENEMY_CW * e + ENEMY_CW / 2;
+      card(PAD + ENEMY_CW * e + 2, eTop + 2, ENEMY_CW - 4, ENEMY_CH - 4, 'rgba(255,255,255,0.85)');
+      var eid = ENEMIES[e];
+      var eopt = {
+        size: 16, facing: 1,
+        hp: chkHp.checked ? (e % 3 === 0 ? 1 : (e % 3 === 1 ? 0.62 : 0.26)) : 1,
+        frozen: eid === 'rabbitSplit',
+        shield: eid === 'rabbitShield' ? 40 : 0
+      };
+      guard('drawEnemy ' + eid, function (id2, x2, y2, o2, tt) {
+        return function () { S.drawEnemy(ctx, id2, x2, y2, tt, o2); };
+      }(eid, ex, eTop + 62, eopt, t + e * 0.37));
+      label(ENEMY_NAMES[eid], ex, eTop + ENEMY_CH - 12, 11, '#7a6b60');
+    }
+
+    var bTop = eTop + ENEMY_CH + 10;
+    for (var b = 0; b < BOSSES.length; b++) {
+      var bid = BOSSES[b];
+      var bx = PAD + BOSS_CW * b + BOSS_CW / 2;
+      card(PAD + BOSS_CW * b + 2, bTop + 2, BOSS_CW - 4, BOSS_CH - 4, 'rgba(255,246,214,0.6)');
+      guard('drawEnemy ' + bid, function (id2, x2, y2, tt) {
+        return function () {
+          S.drawEnemy(ctx, id2, x2, y2, tt, { size: 21, facing: 1, hp: 0.78 });
+        };
+      }(bid, bx, bTop + 118, t + b * 0.5));
+      label('BOSS · ' + ENEMY_NAMES[bid], bx, bTop + BOSS_CH - 16, 12, '#b3402f');
+    }
+
+    /* C. 障碍 8 种（1×1）+ 多格尺寸 */
+    y = LAYOUT.obs;
+    section('C · 障碍 8 种', '第一行 1×1；第二行演示 opts.w/opts.h 多格（2×2、3×2），整体宽度 = w*64');
+    var oTop = y;
+    for (var o = 0; o < OBSTACLES.length; o++) {
+      var ox = PAD + OBS_CW * o + OBS_CW / 2;
+      var kind = OBSTACLES[o];
+      card(PAD + OBS_CW * o + 2, oTop + 2, OBS_CW - 4, OBS_CH - 4, 'rgba(255,255,255,0.85)');
+      guard('drawObstacle ' + kind, function (k2, x2, y2, tt) {
+        return function () { S.drawObstacle(ctx, k2, x2, y2, tt, { hp: 1, w: 1, h: 1 }); };
+      }(kind, ox, oTop + 78, t));
+      if (chkHp.checked) {
+        // 与 render.js 一致：血条画在占用格顶部，不在建筑身上
+        guard('drawObstacleHp ' + kind, function (x2, y2) {
+          return function () { S.drawObstacleHp(ctx, x2, y2, 1, 1, 1); };
+        }(ox, oTop + 78));
+      }
+      label(OBSTACLE_NAMES[kind] + ' · ' + kind, ox, oTop + OBS_CH - 14, 11, '#7a6b60');
+    }
+
+    var bigTop = oTop + OBS_CH + 10;
+    var bigs = [
+      { kind: 'rock',  w: 2, h: 2, hp: 0.85 },
+      { kind: 'house', w: 2, h: 2, hp: 0.5 },
+      { kind: 'tree',  w: 3, h: 2, hp: 0.7 },
+      { kind: 'crate', w: 3, h: 2, hp: 0.3 },
+      { kind: 'crystal', w: 2, h: 1, hp: 1 }
+    ];
+    for (var g = 0; g < bigs.length; g++) {
+      var gg = bigs[g];
+      var gx = PAD + BIG_CW * g + BIG_CW / 2;
+      card(PAD + BIG_CW * g + 2, bigTop + 2, BIG_CW - 4, BIG_CH - 4, 'rgba(255,250,236,0.9)');
+      guard('drawObstacle big ' + gg.kind, function (k2, x2, y2, w2, h2, hp2) {
+        return function () { S.drawObstacle(ctx, k2, x2, y2, t, { hp: hp2, w: w2, h: h2 }); };
+      }(gg.kind, gx, bigTop + 136, gg.w, gg.h, gg.hp));
+      if (chkHp.checked) {
+        guard('drawObstacleHp big', function (x2, y2, w2, h2, hp2) {
+          return function () { S.drawObstacleHp(ctx, x2, y2, w2, h2, hp2); };
+        }(gx, bigTop + 136, gg.w, gg.h, gg.hp));
+      }
+      label(OBSTACLE_NAMES[gg.kind] + ' ' + gg.w + '×' + gg.h + '（' + gg.w * 64 + '×' + gg.h * 64 + '）',
+        gx, bigTop + BIG_CH - 18, 11, '#7a6b60');
+    }
+
+    /* D. 道具 + 弹丸 */
+    y = LAYOUT.pick;
+    section('D · 道具图标 & 弹丸', 'drawPickup(bomb / freeze / lightning) 一眼可辨；drawProjectile 覆盖 12 种弹药');
+    var dTop = y;
+    for (var p = 0; p < PICKUPS.length; p++) {
+      var px = PAD + PICK_CW * p + PICK_CW / 2;
+      card(PAD + PICK_CW * p + 2, dTop + 2, PICK_CW - 4, PICK_CH - 4, 'rgba(255,255,255,0.85)');
+      guard('drawPickup ' + PICKUPS[p], function (k2, x2, y2, tt) {
+        return function () { S.drawPickup(ctx, k2, x2, y2, tt); };
+      }(PICKUPS[p], px, dTop + 70, t));
+      label(PICKUP_NAMES[PICKUPS[p]] + ' · ' + PICKUPS[p], px, dTop + PICK_CH - 16, 11, '#7a6b60');
+    }
+    var projX0 = PAD + PICK_CW * 3 + 26;
+    for (var q = 0; q < PROJ.length; q++) {
+      var qx = projX0 + (q % 4) * (PROJ_CW + 8) + PROJ_CW / 2;
+      var qy = dTop + 34 + ((q / 4) | 0) * (PROJ_CH + 4);
+      card(qx - PROJ_CW / 2, qy - 26, PROJ_CW, PROJ_CH - 12, 'rgba(255,255,255,0.85)');
+      guard('drawProjectile ' + PROJ[q], function (k2, x2, y2, tt) {
+        return function () { S.drawProjectile(ctx, k2, x2, y2, tt, { angle: -0.35 }); };
+      }(PROJ[q], qx, qy + 2, t));
+      label(PROJ[q], qx, qy + 38, 10, '#9a8a7c');
+    }
+
+    /* E. 地砖 6 主题 */
+    y = LAYOUT.tile;
+    section('E · 地砖 6 主题', '每格都有细节层：草簇 / 小花 / 石子、沙纹、雪反光、糖粒、岩浆、云团（4×2 格铺满）');
+    var tileTop = y;
+    for (var th2 = 0; th2 < THEMES.length; th2++) {
+      var tbx = PAD + (th2 % 3) * (TILE_BW + 22);
+      var tby = tileTop + ((th2 / 3) | 0) * (TILE_BH + 40);
+      var ttheme = THEMES[th2];
+      var bake = bakeTheme(ttheme);
+      if (bake) ctx.drawImage(bake, tbx, tby);
+      ctx.save();
+      ctx.strokeStyle = '#cfc0ad';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(tbx - 1, tby - 1, TILE_BW + 2, TILE_BH + 2);
+      ctx.restore();
+      label(THEME_NAMES[ttheme] + ' · ' + ttheme, tbx + TILE_BW / 2, tby + TILE_BH + 16, 11, '#7a6b60');
+    }
+
+    /* F. 萝卜 / 传送门 / 塔位 / 装饰 */
+    y = LAYOUT.misc;
+    section('F · 萝卜 / 传送门 / 塔位 / 装饰', 'game 中其余 Sprites 出口');
+    var fTop = y;
+    var misc = [
+      { name: '萝卜 hp 100%', fn: function (x2, y2) { S.drawCarrot(ctx, x2, y2, t, { hp: 1 }); } },
+      { name: '萝卜 hp 22% 受伤', fn: function (x2, y2) { S.drawCarrot(ctx, x2, y2, t, { hp: 0.22, hurtFlash: 0.8 }); } },
+      { name: '传送门', fn: function (x2, y2) { S.drawPortal(ctx, x2, y2, t, { index: 0 }); } },
+      { name: '塔位 悬浮', fn: function (x2, y2) { S.drawSlot(ctx, x2, y2, { hover: true, affordable: true, t: t }); } },
+      { name: '塔位 不可建', fn: function (x2, y2) { S.drawSlot(ctx, x2, y2, { hover: false, affordable: false, t: t }); } },
+      { name: '装饰 森林', fn: function (x2, y2) { S.drawDecor(ctx, 'forest', x2, y2, t); } },
+      { name: '装饰 沙漠', fn: function (x2, y2) { S.drawDecor(ctx, 'desert', x2, y2, t); } },
+      { name: '装饰 糖果', fn: function (x2, y2) { S.drawDecor(ctx, 'candy', x2, y2, t); } }
+    ];
+    for (var m = 0; m < misc.length; m++) {
+      var mx = PAD + MISC_CW * m + MISC_CW / 2;
+      card(PAD + MISC_CW * m + 2, fTop + 2, MISC_CW - 4, MISC_CH - 4, 'rgba(255,255,255,0.85)');
+      guard('misc ' + misc[m].name, function (item, x2, y2) {
+        return function () { item.fn(x2, y2); };
+      }(misc[m], mx, fTop + 72));
+      label(misc[m].name, mx, fTop + MISC_CH - 16, 11, '#7a6b60');
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  // #static：只画若干帧就停（截图 / 静态审阅用，避免动画一直重绘）
+  var staticMode = /static/.test(location.hash || '');
+  var frameCount = 0;
+  window.__spritesRendered = 0;
+
+  // #zoom=2 让画布放大显示（便于人工检查描边、高光、炮口方向）
+  var zoomMatch = /zoom=([0-9.]+)/.exec(location.hash || '');
+  if (zoomMatch) {
+    var z = Math.max(1, Math.min(3, parseFloat(zoomMatch[1]) || 1));
+    cv.style.width = Math.round(1280 * z) + 'px';
+    cv.style.maxWidth = 'none';
+  }
+
+  if (hasSprites) requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
