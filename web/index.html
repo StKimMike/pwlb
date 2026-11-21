@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#7ec850" />
+  <meta name="description" content="保卫萝卜复刻版 · 纯前端网页塔防：种炮塔、守萝卜、打兔子。" />
+  <title>保卫萝卜 · 复刻版</title>
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/ui.css" />
+  <link rel="stylesheet" href="css/hud.css" />
+  <link rel="stylesheet" href="css/v2.css" />
+</head>
+
+<body>
+  <!-- 应用根容器：所有屏幕与弹窗都挂在这里 -->
+  <div id="app" class="app">
+
+    <!-- ==================== 主菜单 ==================== -->
+    <section id="screen-menu" class="screen screen-menu active" aria-label="主菜单">
+      <!-- 以下装饰层全部由纯 CSS 绘制：天空、太阳、云朵、山坡、草地、萝卜 -->
+      <div class="menu-sky" aria-hidden="true"></div>
+      <div class="menu-sun" aria-hidden="true"><span class="sun-core"></span></div>
+      <div class="menu-clouds" aria-hidden="true">
+        <span class="cloud cloud-1"></span>
+        <span class="cloud cloud-2"></span>
+        <span class="cloud cloud-3"></span>
+        <span class="cloud cloud-4"></span>
+        <span class="cloud cloud-5"></span>
+      </div>
+      <div class="menu-meadow" aria-hidden="true">
+        <span class="hill hill-1"></span>
+        <span class="hill hill-2"></span>
+        <span class="hill hill-3"></span>
+        <span class="grass-tuft grass-1"></span>
+        <span class="grass-tuft grass-2"></span>
+        <span class="grass-tuft grass-3"></span>
+        <span class="grass-tuft grass-4"></span>
+        <span class="menu-flower flower-1"></span>
+        <span class="menu-flower flower-2"></span>
+        <span class="menu-flower flower-3"></span>
+      </div>
+      <div class="menu-carrot" aria-hidden="true">
+        <span class="carrot-leaf leaf-1"></span>
+        <span class="carrot-leaf leaf-2"></span>
+        <span class="carrot-leaf leaf-3"></span>
+        <span class="carrot-body"></span>
+        <span class="carrot-face"><i class="eye eye-l"></i><i class="eye eye-r"></i><i class="mouth"></i></span>
+      </div>
+
+      <header class="menu-top">
+        <!-- 玩家金币与星星统计：由 JS 填充 .profile-chip，这里先放占位文字 -->
+        <div id="menu-profile" class="profile-chip menu-profile" title="玩家档案">金币 0 · 星星 0</div>
+      </header>
+
+      <div class="menu-center">
+        <div class="title-wrap">
+          <span class="title-cloud" aria-hidden="true"></span>
+          <h1 class="game-title">保卫萝卜</h1>
+        </div>
+        <p class="game-subtitle">复刻版 · 守住萝卜！</p>
+
+        <nav class="menu-actions" aria-label="主菜单操作">
+          <button id="btn-play" class="btn primary menu-btn" type="button">开始游戏</button>
+          <button id="btn-levels" class="btn menu-btn" type="button">关卡选择</button>
+          <button id="btn-collection" class="btn menu-btn" type="button">图鉴</button>
+          <button id="btn-settings" class="btn menu-btn" type="button">设置</button>
+        </nav>
+
+        <p class="menu-tip">种下炮塔，别让兔子啃到萝卜</p>
+      </div>
+    </section>
+
+    <!-- ==================== 关卡选择 ==================== -->
+    <section id="screen-levels" class="screen screen-levels" aria-label="关卡选择">
+      <header class="screen-head">
+        <button id="btn-levels-back" class="btn icon back-btn" type="button" aria-label="返回主菜单">&#8592;</button>
+        <h2 class="screen-title">选关</h2>
+        <span class="head-tail" aria-hidden="true"></span>
+      </header>
+
+      <div class="levels-scroll">
+        <!-- 关卡卡片由 JS 填充 -->
+        <div id="level-grid" class="level-grid"></div>
+      </div>
+
+      <footer id="levels-progress" class="levels-progress">已通关 0 / 0 · 星星 0 / 0</footer>
+    </section>
+
+    <!-- ==================== 图鉴 ==================== -->
+    <section id="screen-collection" class="screen screen-collection" aria-label="图鉴">
+      <header class="screen-head">
+        <button id="btn-collection-back" class="btn icon back-btn" type="button" aria-label="返回主菜单">&#8592;</button>
+        <h2 class="screen-title">图鉴</h2>
+        <div id="collection-tabs" class="tabs" role="tablist" aria-label="图鉴分类">
+          <button class="tab active" type="button" role="tab" data-tab="towers" aria-selected="true">炮塔</button>
+          <button class="tab" type="button" role="tab" data-tab="enemies" aria-selected="false">敌人</button>
+        </div>
+      </header>
+
+      <div class="collection-scroll">
+        <!-- 图鉴内容由 JS 填充 -->
+        <div id="collection-content" class="collection-content"></div>
+      </div>
+    </section>
+
+    <!-- ==================== 游戏界面 ==================== -->
+    <section id="screen-game" class="screen screen-game" aria-label="游戏画面">
+      <div class="game-column">
+
+        <!-- HUD 横条 -->
+        <div id="hud" class="hud">
+          <div class="hud-group">
+            <div id="hud-coins" class="hud-stat hud-coins" title="金币">0</div>
+            <div class="hud-carrot-wrap" title="萝卜血量">
+              <div id="hud-carrot" class="hud-stat hud-carrot">30 / 30</div>
+              <div class="carrot-track"><div id="hud-carrot-bar" class="carrot-fill"></div></div>
+            </div>
+            <div class="hud-stat hud-spots" title="可建塔的空地"><span id="hud-open-spots">0</span> 格</div>
+          </div>
+
+          <div class="hud-group hud-group-mid">
+            <div id="hud-wave" class="hud-stat hud-wave" title="波次">第 1 / 5 波</div>
+            <div id="hud-wave-timer" class="hud-stat hud-timer" title="下一波倒计时">6s</div>
+          </div>
+
+          <div class="hud-group hud-group-right">
+            <button id="btn-speed" class="btn icon hud-btn" type="button" title="切换游戏速度">1&times;</button>
+            <button id="btn-pause" class="btn icon hud-btn pause-btn" type="button" aria-label="暂停">
+              <span class="glyph-pause" aria-hidden="true"></span>
+            </button>
+            <!-- 下一波预告（JS 会写入文字；为空时由样式隐藏） -->
+            <div id="next-wave-preview" class="next-wave-preview"></div>
+          </div>
+        </div>
+
+        <!-- 舞台：1280×768 画布 + 各类浮层 -->
+        <div id="game-stage" class="game-stage">
+          <canvas id="game-canvas" width="1280" height="768"></canvas>
+
+          <!-- BOSS 血条（默认隐藏） -->
+          <div id="boss-bar" class="boss-bar hidden">
+            <div class="boss-top">
+              <span class="boss-label">BOSS</span>
+              <span id="boss-bar-name" class="boss-name">？？？</span>
+            </div>
+            <div class="boss-track">
+              <div id="boss-bar-fill" class="boss-fill"></div>
+            </div>
+          </div>
+
+          <!-- 波次横幅（默认隐藏） -->
+          <div id="wave-banner" class="wave-banner hidden">第 1 波来袭！</div>
+
+          <!-- Boss 登场警告横幅（默认隐藏，JS 填文字并抖动） -->
+          <div id="boss-warning" class="boss-warning hidden" role="alert"></div>
+
+          <!-- 选中炮塔面板（默认隐藏，浮在舞台上） -->
+          <aside id="tower-inspect" class="tower-inspect hidden" aria-label="炮塔信息">
+            <div class="inspect-head">
+              <span class="inspect-name">瓶子塔</span>
+              <span class="inspect-level">Lv.1</span>
+            </div>
+            <p class="inspect-desc">开局就能造的廉价炮塔，单体伤害稳定。</p>
+            <ul class="inspect-stats">
+              <li><span>伤害</span><b>12</b></li>
+              <li><span>射程</span><b>132</b></li>
+              <li><span>冷却</span><b>0.90s</b></li>
+            </ul>
+            <div class="inspect-actions">
+              <button class="btn primary" type="button">升级</button>
+              <button class="btn danger" type="button">卖出</button>
+            </div>
+          </aside>
+
+          <!-- 建造模式提示（默认隐藏） -->
+          <div id="build-hint" class="build-hint hidden"></div>
+
+          <!-- 飘字层 -->
+          <div id="toast-layer" class="toast-layer" aria-live="polite"></div>
+        </div>
+
+        <!-- 商店分页：炮塔 / 道具 -->
+        <div id="shop-tabs" class="shop-tabs" role="tablist" aria-label="商店分类">
+          <button class="shop-tab active" type="button" role="tab" data-tab="tower" aria-selected="true">炮塔</button>
+          <button class="shop-tab" type="button" role="tab" data-tab="item" aria-selected="false">道具</button>
+        </div>
+
+        <!-- 炮塔商店：画布下方的卡片栏（两行网格，12 张卡全可见，窄屏横向滚动） -->
+        <div id="tower-shop" class="tower-shop" aria-label="炮塔商店"></div>
+
+        <!-- 特殊武器背包（炸弹 / 冰冻 / 闪电，按钮内带价格标签位） -->
+        <div id="item-bar" class="item-bar" aria-label="特殊武器"></div>
+      </div>
+    </section>
+
+    <!-- ==================== 弹窗：暂停 ==================== -->
+    <div id="modal-pause" class="modal hidden" role="dialog" aria-modal="true" aria-label="游戏暂停">
+      <div class="modal-card">
+        <h2 class="modal-title">游戏暂停</h2>
+        <p class="modal-sub">喘口气，萝卜还在等你</p>
+        <div class="modal-actions">
+          <button id="btn-resume" class="btn primary" type="button">继续游戏</button>
+          <button id="btn-restart" class="btn" type="button">重新开始</button>
+          <button id="btn-pause-settings" class="btn" type="button">设置</button>
+          <button id="btn-quit" class="btn" type="button">退出关卡</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 弹窗：结算 ==================== -->
+    <div id="modal-result" class="modal hidden" role="dialog" aria-modal="true" aria-label="本关结算">
+      <div class="modal-card result-card">
+        <h2 id="result-title" class="modal-title">胜利！</h2>
+        <p class="modal-sub">萝卜平安无事</p>
+
+        <div id="result-stars" class="result-stars">&#9733;&#9733;&#9733;</div>
+
+        <dl class="result-stats">
+          <div>
+            <dt>获得金币</dt>
+            <dd id="result-coins">0</dd>
+          </div>
+          <div>
+            <dt>用时</dt>
+            <dd id="result-time">0:00</dd>
+          </div>
+        </dl>
+
+        <div class="modal-actions">
+          <button id="btn-result-next" class="btn primary" type="button">下一关</button>
+          <button id="btn-result-retry" class="btn" type="button">重玩本关</button>
+          <button id="btn-result-menu" class="btn" type="button">返回菜单</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 弹窗：设置 ==================== -->
+    <div id="modal-settings" class="modal hidden" role="dialog" aria-modal="true" aria-label="设置">
+      <div class="modal-card">
+        <h2 class="modal-title">设置</h2>
+        <p class="modal-sub">音效、音乐与音量</p>
+
+        <div class="opt-list">
+          <div class="opt-row">
+            <label class="opt-label" for="opt-sound">音效</label>
+            <input id="opt-sound" class="switch" type="checkbox" checked />
+          </div>
+          <div class="opt-row">
+            <label class="opt-label" for="opt-music">音乐</label>
+            <input id="opt-music" class="switch" type="checkbox" checked />
+          </div>
+          <div class="opt-row">
+            <label class="opt-label" for="opt-volume">音量</label>
+            <input id="opt-volume" class="range" type="range" min="0" max="100" step="1" value="70" />
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button id="btn-settings-close" class="btn primary" type="button">关闭</button>
+          <button id="btn-settings-back" class="btn" type="button">返回主菜单</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 普通脚本，顺序不可改：音效 → 美术 → 内核 → 工具 → 渲染 → 主控 -->
+  <script src="js/audio.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/format.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
